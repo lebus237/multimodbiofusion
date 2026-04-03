@@ -8,9 +8,9 @@ data:
   root_dir: "data/virtual_dataset"
   img_size: [224, 224]
   # Degradation settings (paper §5.1.1)
-  iris_quality: 0.20          # retain 20% JPEG quality
-  fingerprint_quality: 0.30   # retain 30% JPEG quality
-  resolution_factor: 0.25     # downsample to 1/4 then upsample
+  iris_quality: 0.20 # retain 20% JPEG quality
+  fingerprint_quality: 0.30 # retain 30% JPEG quality
+  resolution_factor: 0.25 # downsample to 1/4 then upsample
   num_identities: 2712
   min_samples_per_identity: 5
   train_split: 0.80
@@ -18,22 +18,22 @@ data:
   test_split: 0.10
 
 model:
-  embed_dim: 512              # output embedding dimension per modality
-  backbone: "vgg16"           # vgg16 | vgg16_bn | resnet50 | densenet169
-  pixel_fusion_type: "channel"  # channel | intensity | spatial
+  embed_dim: 512 # output embedding dimension per modality
+  backbone: "resnet50" # vgg16 | vgg16_bn | resnet50 | densenet169
+  pixel_fusion_type: "intensity" # channel | intensity | spatial
 
 training:
   epochs: 100
-  batch_size: 64
+  batch_size: 16
   learning_rate: 1.0e-4
   weight_decay: 5.0e-4
-  lr_scheduler: "cosine"      # cosine | step
+  lr_scheduler: "cosine" # cosine | step
   warmup_epochs: 5
-  num_workers: 4
+  num_workers: 2
   pin_memory: true
   save_dir: "checkpoints"
   log_dir: "logs"
-  save_every: 10              # save checkpoint every N epochs
+  save_every: 10 # save checkpoint every N epochs
   seed: 42
 
   arcface:
@@ -42,12 +42,12 @@ training:
 
   multi_task_weights:
     fused: 1.0
-    modality: 0.3             # weight for each single-modal auxiliary loss
+    modality: 0.3 # weight for each single-modal auxiliary loss
 
 evaluation:
   max_rank: 10
-  batch_size: 256
-  query_ratio: 0.20           # fraction of test set used as queries
+  batch_size: 64
+  query_ratio: 0.20 # fraction of test set used as queries
 
 score_fusion:
-  method: "rank1"             # rank1 | modality
+  method: "rank1" # rank1 | modality
