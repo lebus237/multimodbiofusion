@@ -78,8 +78,11 @@ def collect_identity_paths(
         if subdir.is_dir():
             imgs = sorted(
                 list(subdir.glob("*.jpg"))
+                + list(subdir.glob("*.JPG"))
                 + list(subdir.glob("*.png"))
+                + list(subdir.glob("*.PNG"))
                 + list(subdir.glob("*.bmp"))
+                + list(subdir.glob("*.BMP"))
             )
             if len(imgs) >= min_samples:
                 identities[subdir.name] = imgs
@@ -88,8 +91,11 @@ def collect_identity_paths(
     if not identities:
         flat_imgs = sorted(
             list(root.glob("*.jpg"))
+            + list(root.glob("*.JPG"))
             + list(root.glob("*.png"))
+            + list(root.glob("*.PNG"))
             + list(root.glob("*.bmp"))
+            + list(root.glob("*.BMP"))
         )
         for img in flat_imgs:
             id_key = img.stem[:4]
