@@ -90,6 +90,12 @@ def parse_args():
     p.add_argument(
         "--log_dir", type=str, default=None, help="Override TensorBoard log directory"
     )
+    p.add_argument(
+        "--resume",
+        action="store_true",
+        default=False,
+        help="Resume training from the latest checkpoint in save_dir",
+    )
     return p.parse_args()
 
 
@@ -199,12 +205,24 @@ def main():
         f"cosine annealing for remaining {epochs - cfg['training'].get('warmup_epochs', 5)} epochs\n"
     )
 
+    # ── Resume from checkpoint (if requested) ────────────────────────────────
+    start_epoch = 1
+    if args.resume:
+        ckpt_path = trainer.find_latest_checkpoint(run_name)
+        if ckpt_path:
+            last_epoch = trainer.load(ckpt_path, resume=True)
+            start_epoch = last_epoch + 1
+            print(f"  ▶ Resuming from epoch {start_epoch}")
+        else:
+            print("  ⚠ --resume set but no checkpoint found; starting from scratch.")
+
     # ── Train ─────────────────────────────────────────────────────────────────
     history = trainer.fit(
         train_loader=train_loader,
         val_loader=val_loader,
         save_every=cfg["training"].get("save_every", 10),
         run_name=run_name,
+        start_epoch=start_epoch,
     )
 
     # ── Final evaluation on test set ──────────────────────────────────────────

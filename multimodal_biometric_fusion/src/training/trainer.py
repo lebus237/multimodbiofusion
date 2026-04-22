@@ -159,16 +159,33 @@ class Trainer:
 
     # ── Full training loop ────────────────────────────────────────────────────
 
+    def find_latest_checkpoint(self, run_name: str = "") -> Optional[str]:
+        """Return the path to the highest-epoch .pt file in save_dir, or None."""
+        pts = sorted(self.save_dir.glob("*.pt"))
+        if not pts:
+            return None
+        # Pick the file with the largest epoch number in its name
+        import re
+        best, best_ep = None, -1
+        for p in pts:
+            m = re.search(r"epoch(\d+)", p.stem)
+            if m:
+                ep = int(m.group(1))
+                if ep > best_ep:
+                    best, best_ep = str(p), ep
+        return best
+
     def fit(
         self,
         train_loader: DataLoader,
         val_loader: DataLoader,
         save_every: int = 10,
         run_name: str = "model",
+        start_epoch: int = 1,
     ) -> Dict[str, list]:
         history: Dict[str, list] = {"train_loss": [], "val_loss": []}
 
-        for epoch in range(1, self.epochs + 1):
+        for epoch in range(start_epoch, self.epochs + 1):
             t0 = time.time()
             train_loss = self.train_epoch(train_loader)
             val_loss = self.val_epoch(val_loader)
@@ -192,28 +209,40 @@ class Trainer:
             )
 
             if epoch % save_every == 0 or epoch == self.epochs:
-                self.save(f"{run_name}_epoch{epoch:03d}.pt")
+                self.save(f"{run_name}_epoch{epoch:03d}.pt", epoch=epoch)
 
         self.writer.close()
         return history
 
-    def save(self, filename: str) -> None:
+    def save(self, filename: str, epoch: int = 0) -> None:
         path = self.save_dir / filename
         torch.save(
             {
+                "epoch": epoch,
                 "model_state": self.model.state_dict(),
                 "loss_state": self.loss_fn.state_dict(),
                 "optimizer_state": self.optimizer.state_dict(),
+                "scheduler_state": self.scheduler.state_dict(),
             },
             path,
         )
         print(f"  ✓ Saved checkpoint → {path}")
 
-    def load(self, path: str) -> None:
+    def load(self, path: str, resume: bool = False) -> int:
+        """Load a checkpoint. If *resume* is True, also restore optimizer
+        and scheduler so training can continue exactly where it stopped.
+        Returns the epoch number stored in the checkpoint (0 if absent)."""
         ckpt = torch.load(path, map_location=self.device)
         self.model.load_state_dict(ckpt["model_state"])
         self.loss_fn.load_state_dict(ckpt["loss_state"])
-        print(f"  ✓ Loaded checkpoint ← {path}")
+        epoch = ckpt.get("epoch", 0)
+        if resume:
+            if "optimizer_state" in ckpt:
+                self.optimizer.load_state_dict(ckpt["optimizer_state"])
+            if "scheduler_state" in ckpt:
+                self.scheduler.load_state_dict(ckpt["scheduler_state"])
+        print(f"  ✓ Loaded checkpoint ← {path}  (epoch {epoch})")
+        return epoch
 
 
 # ── Feature-Fusion Trainer ────────────────────────────────────────────────────
